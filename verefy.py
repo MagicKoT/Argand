@@ -4,7 +4,8 @@ from discord.utils import get
 from pymongo import MongoClient
 
 intents = discord.Intents().all()
-client = discord.Client(command_prefix = "-", intents = intents)
+prefix = "-"
+client = discord.Client(command_prefix = prefix, intents = intents)
 cluster = MongoClient("mongodb://127.0.0.1:27017")
 collguild = cluster.argand.guild
 
@@ -21,6 +22,28 @@ async def on_ready():
             collguild.insert_one(post1)
     print(f"бот {client.name} успешно запущен и подключен")
 
+@client.command(
+        name = "voice_verify",
+        aliases = ["vv", "voiceverify", "Voice_Verify"],
+        brief = "Включить или выключить голосовую верефикацию",
+	    usage = f"{prefix}vv 1"
+    )
+async def voice_verify(ctx, sum):
+    author = ctx.author
+    if author.id == 1046480698468479108:
+        if sum == 1:
+            datag = collguild.find_one({"_id": ctx.guild.id})
+            collguild.update_one({"_id": ctx.guild.id},
+                {"$set": {"verify": True}})
+            await ctx.message.add_reaction("✅")
+        if sum == 0:
+            datag = collguild.find_one({"_id": ctx.guild.id})
+            collguild.update_one({"_id": ctx.guild.id},
+                {"$set": {"verify": False}})
+            await ctx.message.add_reaction("✅")
+        else:
+            ctx.send("Вы указали не вероное значение\nЧто бы включить или выключить голосовую верефикацию нужно использовать одно из двух значений  \n 1 = Включить,   0 = Выключить")
+
 @client.event
 async def on_voice_state_update(member, before, after):
     guild = after.channel.guild
@@ -31,8 +54,10 @@ async def on_voice_state_update(member, before, after):
         if member.id in datag["support"]:
             return
         # Добавить проверку, что человек только зашел на канал, а не перешёл или выполнил условие
-        if af == 1056206116469612646 or af == 1056206116469612647 or af == 1056206116469612648 or af == 1056206116469612649 or af == 1057637012028522596:
+        if before.channel is None and af == 1056206116469612646 or before.channel is None and af == 1056206116469612647 or before.channel is None and af == 1056206116469612648 or before.channel is None and af == 1056206116469612649 or before.channel is None and af == 1057637012028522596:
             print(f"Пользователь {member.name} зашел в {after.channel.name} и ждет верефикации")
+            ch = client.get_channel(1086614040270360646)
+            ch.send(f"<@&1056206116201168953> Пользователь {member.name} ждет верификации")
 
 @client.event
 async def on_member_join(ctx, member):
@@ -54,11 +79,11 @@ async def on_member_join(ctx, member):
             await member.kick(reason="Не выбран пол")
         else:
             if str(reaction.emoji) == '👦':
-                role = get(member.guild.roles, name='Мальчик')
+                role = get(member.guild.roles, name='♂️')
                 await member.add_roles(role, reason='Выбор пола')
             elif str(reaction.emoji) == '👧':
-                role = get(member.guild.roles, name='Девочка')
+                role = get(member.guild.roles, name='♀️')
                 await member.add_roles(role, reason='Выбор пола')
             await member.send("Вы успешно выбрали свой пол и можете продолжать пользоваться сервером.")
 
-client.run('YOUR_BOT_TOKEN')
+client.run('MTA4Mjc1NzUxOTgwMzQzNzEzOA.GLq8um.sZkXhIGPdlsqPDGf4ibWyXBG3nax21E6Sovd50')
