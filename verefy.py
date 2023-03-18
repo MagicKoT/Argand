@@ -3,6 +3,9 @@ import asyncio
 from discord.utils import get
 from discord.ext import commands
 from pymongo import MongoClient
+from discord.ui import Button, View, Select
+from discord import ui, Interaction
+
 
 intents = discord.Intents().all()
 prefix = "-"
@@ -23,38 +26,81 @@ async def on_ready():
             collguild.insert_one(post1)
     print(f"бот {client.user} успешно запущен и подключен")
 
+class VerifyView(View):
+    def __init__(self, member):
+        super().__init__()
+        self.member = member
+    
+    @discord.ui.button(label="Мужской", style=discord.ButtonStyle.primary, emoji='♂️')
+    async def male(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(self.member.guild.roles, name='♂️')
+        unvr = discord.utils.get(self.member.guild.roles, name='unverify')
+        await self.member.add_roles(role, reason='Выбор пола')
+        await self.member.remove_roles(unvr, reason="Пройдена верификация")
+        self.stop()
+        # await interaction.response.send_message(f"Вы успешно провели верефикацию пользователю {self.member.name}. Ему была роль ♂️")
+        # self.stop()
+
+    @discord.ui.button(label="Женский", style=discord.ButtonStyle.primary, emoji='♀️')
+    async def female(self, button: discord.ui.Button, interaction: discord.Interaction):
+        role = discord.utils.get(self.member.guild.roles, name='♀️')
+        unvr = discord.utils.get(self.member.guild.roles, name='unverify')
+        await self.member.add_roles(role, reason='Выбор пола')
+        await self.member.remove_roles(unvr, reason="Пройдена верификация")
+        self.stop()
+        # await interaction.response.send_message(f"Вы успешно провели верификацию пользователю {self.member.name}. Ей была роль ♀️")
+        # self.stop()
+
 @client.command(
-        name = "verify",
-        aliases = ["vf", "verefy", "veref", 'verif'],
-        brief = "Выберите как взаимодействовать с пользователем",
-	    usage = f"{prefix}vf @пользователь пол(М или Д)"
-    )
-async def verify(ctx, member:discord.Member=None, gender:str=None):
+    name="verify",
+    aliases=["vf", "verefy", "veref", 'verif'],
+    brief="Выберите как взаимодействовать с пользователем",
+    usage=f"{prefix}vf @пользователь пол(М или Д)"
+)
+async def verify(ctx, member: discord.Member=None, gender:str=None):
     if member is None:
         await ctx.send("Вы не указали пользователя")
         return
-    if gender is None:
-        await ctx.send("Вы не указали пол пользователя")
-        return
-    unvr = get(member.guild.roles, name='unverify')
-    # if gender != "м" or gender != "д" or gender != "М" or gender != "Д":
-    #     await ctx.send("Вы должны указать пол пользователя м или д")
+    # if gender is None:
+    #     await ctx.send("Вы не указали пол пользователя")
     #     return
-    if gender == "м" or gender == "М":
-        role = get(member.guild.roles, name='♂️')
-        await member.add_roles(role, reason='Выбор пола')
-        await member.remove_roles(unvr, reason="Пройдена верефикация")
-        await ctx.send(f"Вы увпешно провели верефикацию пользователю {member.name}. Ему была роль ♂️")
-        return
-    if gender == "д" or gender == "Д":
-        role = get(member.guild.roles, name='♀️')
-        await member.add_roles(role, reason='Выбор пола')
-        await member.remove_roles(unvr, reason="Пройдена верефикация")
-        await ctx.send(f"Вы увпешно провели верефикацию пользователю {member.name}. Ей была роль ♀️")
-        return
-    else:
-        await ctx.send("Вы должны указать пол пользователя м или д")
-        return
+
+    view = VerifyView(member)
+    await ctx.send(f"Выберите пол для пользователя {member.mention}", view=view)
+
+
+# @client.command(
+#         name = "verify",
+#         aliases = ["vf", "verefy", "veref", 'verif'],
+#         brief = "Выберите как взаимодействовать с пользователем",
+# 	    usage = f"{prefix}vf @пользователь пол(М или Д)"
+#     )
+# async def verify(ctx, member:discord.Member=None, gender:str=None):
+#     if member is None:
+#         await ctx.send("Вы не указали пользователя")
+#         return
+#     if gender is None:
+#         await ctx.send("Вы не указали пол пользователя")
+#         return
+#     unvr = get(member.guild.roles, name='unverify')
+#     # if gender != "м" or gender != "д" or gender != "М" or gender != "Д":
+#     #     await ctx.send("Вы должны указать пол пользователя м или д")
+#     #     return
+#     if gender == "м" or gender == "М":
+#         role = get(member.guild.roles, name='♂️')
+#         await member.add_roles(role, reason='Выбор пола')
+#         await member.remove_roles(unvr, reason="Пройдена верефикация")
+#         await ctx.send(f"Вы увпешно провели верефикацию пользователю {member.name}. Ему была роль ♂️")
+#         return
+#     if gender == "д" or gender == "Д":
+#         role = get(member.guild.roles, name='♀️')
+#         await member.add_roles(role, reason='Выбор пола')
+#         await member.remove_roles(unvr, reason="Пройдена верефикация")
+#         await ctx.send(f"Вы увпешно провели верефикацию пользователю {member.name}. Ей была роль ♀️")
+#         return
+#     else:
+#         await ctx.send("Вы должны указать пол пользователя м или д")
+#         return
     
 
 @client.command(
