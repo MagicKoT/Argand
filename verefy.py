@@ -5,13 +5,22 @@ from discord.ext import commands
 from pymongo import MongoClient
 from discord.ui import Button, View, Select
 from discord import ui, Interaction
+import configparser
+
+conf = configparser.ConfigParser()
+conf.read('config.ini')
+
+# Забираем данные ...
+support_con = conf.get('Settings', 'Support')
+prefix = conf.get('Settings', 'Prefix')
 
 
 intents = discord.Intents().all()
-prefix = "|"
 client = commands.Bot(command_prefix = prefix, intents = intents)
 cluster = MongoClient("mongodb://127.0.0.1:27017")
 collguild = cluster.argand.guild
+
+
 
 @client.event
 async def on_ready():
@@ -20,6 +29,8 @@ async def on_ready():
             "_id": guild.id,
             "name": guild.name,
             "support": [],
+            "eco_rate": 1.00,
+            "exp_rate": 1.00,
             "verify": True
         }
         if collguild.count_documents({"_id": guild.id}) == 0:
@@ -137,7 +148,7 @@ async def on_voice_state_update(member, before, after):
     if datag["verify"] == True:
         if after.channel is None:
             return
-        if member.id in datag["support"]:
+        if member.id in support_con:
             return
         # Добавить проверку, что человек только зашел на канал, а не перешёл или выполнил условие
         if before.channel is None and af in v_c:
