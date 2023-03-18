@@ -8,7 +8,7 @@ from discord import ui, Interaction
 
 
 intents = discord.Intents().all()
-prefix = "-"
+prefix = "|"
 client = commands.Bot(command_prefix = prefix, intents = intents)
 cluster = MongoClient("mongodb://127.0.0.1:27017")
 collguild = cluster.argand.guild
