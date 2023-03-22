@@ -36,7 +36,8 @@ async def on_ready():
             "name": guild.name,
             "eco_rate": 1.00,
             "exp_rate": 1.00,
-            "verify": True
+            "verify": True,
+            "deaf_logs": False
         }
         if collguild.count_documents({"_id": guild.id}) == 0:
             collguild.insert_one(post1)
@@ -269,16 +270,29 @@ async def voice_verify(ctx, sum):
             await ctx.send("Вы указали не вероное значение\nЧто бы включить или выключить голосовую верефикацию нужно использовать одно из двух значений  \n 1 = Включить,   0 = Выключить")
             return
         
+
+@client.command(pass_context = True)
+async def clear(ctx, number = 1):
+    number = int(number) #Converting the amount of messages to delete to an integer
+    await ctx.channel.purge(limit=number)
+    message = await ctx.send(f"{ctx.author.mention} Удалил {number} сообшений")
+    await asyncio.sleep(20)
+    await message.delete()
+
+
 @client.event
 async def on_voice_state_update(member, before, after):
     guild = member.guild.id
     datag = collguild.find_one({"_id": guild})
-    af = after.channel.id
+    if after.channel is not None:
+        af = after.channel.id
     if datag["verify"] == True:
         if after.channel is None:
             print("AFTER CHANNEL IS NONE")
+            return
         if member.id in support_con:
             print("MEMBER ID IN SUPPORT CONT")
+            return
         # Добавить проверку, что человек только зашел на канал, а не перешёл или выполнил условие
         if before.channel is None and af in v_c:
             print(f"Пользователь {member.name} зашел в {after.channel.name} и ждет верефикации")
@@ -290,15 +304,16 @@ async def on_member_join(member):
     guild = member.guild
     datag = collguild.find_one({"_id": guild.id})
     unvr = get(member.guild.roles, name='unverify')
-
+    await member.add_roles(unvr, reason='Ожидание верификации')
     if datag["verify"] == False:
         await member.send("Привет! Выберите ваш пол, нажав на соответствующую реакцию:")
-        message = await member.send("👦 для выбора Мальчик\n👧 для выбора Девочка")
-        await message.add_reaction('👦')
-        await message.add_reaction('👧')
+        message = await member.send("♂️ для выбора Мальчик\n♀️ для выбора Девочка")
+        await message.add_reaction('♂️')
+        await message.add_reaction('♀️')
+        
 
         def check(reaction, user):
-            return user == member and str(reaction.emoji) in ['👦', '👧']
+            return user == member and str(reaction.emoji) in ['♂️', '♀️']
 
         try:
             reaction, user = await client.wait_for('reaction_add', timeout=10.0, check=check)
@@ -306,11 +321,11 @@ async def on_member_join(member):
             await member.send("Время на выбор пола истекло, вы будете исключены из сервера.")
             await member.kick(reason="Не выбран пол")
         else:
-            if str(reaction.emoji) == '👦':
+            if str(reaction.emoji) == '♂️':
                 role = get(member.guild.roles, name='♂️')
                 await member.add_roles(role, reason='Выбор пола')
                 await member.remove_roles(unvr, reason="Пройдена верефикация")
-            elif str(reaction.emoji) == '👧':
+            elif str(reaction.emoji) == '♀️':
                 role = get(member.guild.roles, name='♀️')
                 await member.add_roles(role, reason='Выбор пола')
                 await member.remove_roles(unvr, reason="Пройдена верефикация")
