@@ -3,6 +3,7 @@ import asyncio
 from discord.utils import get
 from discord.ext import commands
 from pymongo import MongoClient
+import time
 import configparser
 
 conf = configparser.ConfigParser()
@@ -25,12 +26,13 @@ async def on_ready():
             post1 = {
                 "_id": member.id,
                 "name": member.name,
-                "balance": [],
+                "balance": 0,
                 "voice_active": 0,
                 "messages": 0,
                 "voice_trip": 0,
                 "message_cd": 0,
-                "deaf_time": 0
+                "deaf_time": 0,
+                "deaf_trip": 0
             }
         if collmember.count_documents({"_id": member.id}) == 0:
             collmember.insert_one(post1)
@@ -39,10 +41,38 @@ async def on_ready():
 
 @client.event
 async def on_voice_state_update(member, before, after):
+    data = collmember.find_one({"_id": member.id})
+    datag = collguild.find_one({"_id": member.guild.id})
+
     if before.channel is None and after.channel is not None:
+        t1 = time.time()
+        collmember.update_one({"_id": member.id},
+            {"$set": {"voice_trip": t1}})
         print(f"Пользователь {member.name} зашел на канал {after.channel.name}")
         return
     if before.channel is not None and after.channel is None:
+        if data["voice_trip"] == 0:
+            return
+        t1 = data["voice_trip"]
+        voice_activ = data["voice_active"]
+        balance = data["balance"]
+        t2 = time.time()
+        tim = t2-t1
+        vox = datag["eco_rate"]
+        if data["deaf_time"] != 0:
+            de = data["deaf_time"]
+            tim1 = de - tim
+            collmember.update_one({"_id": member.id},
+                {"$set": {"voice_active": voice_activ + tim1}})
+            collmember.update_one({"_id": member.id},
+                {"$set": {"balance": balance + (tim1 / 12) * vox}})
+            collmember.update_one({"_id": member.id},
+                {"$set": {"deaf_time": 0}})
+        else:
+            collmember.update_one({"_id": member.id},
+                {"$set": {"voice_active": voice_activ + tim}})
+            collmember.update_one({"_id": member.id},
+                {"$set": {"balance": balance + (tim / 12) * vox}})
         print(f"Пользователь {member.name} вышел с канала {before.channel.name}")
         return
     if before.channel is not None and after.channel is not None and before.channel != after.channel:
@@ -50,9 +80,18 @@ async def on_voice_state_update(member, before, after):
         return
     else:
         if before.self_deaf is False and after.self_deaf is True:
+            collmember.update_one({"_id": member.id},
+                {"$set": {"deaf_trip": t2}})
             print(f"пользователь {member.name} выключил у себя звук и микрофон")
             return
         if before.self_deaf is True and after.self_deaf is False:
+            if data["deaf_trip"] == 0:
+                return
+            else:
+                dt = data["deaf_trip"]
+                deaf = t2 - dt
+                collmember.update_one({"_id": member.id},
+                    {"$set": {"deaf_time": deaf}})
             print(f"пользователь {member.name} включил у себя звук и микрофон")
             return
         if before.self_mute is False and after.self_mute is True:
