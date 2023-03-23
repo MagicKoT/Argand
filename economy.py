@@ -44,6 +44,7 @@ async def on_voice_state_update(member, before, after):
     data = collmember.find_one({"_id": member.id})
     datag = collguild.find_one({"_id": member.guild.id})
     t2 = time.time()
+    dte = data["deaf_time"]
 
     if before.channel is None and after.channel is not None:
         t1 = time.time()
@@ -58,12 +59,11 @@ async def on_voice_state_update(member, before, after):
         voice_activ = data["voice_active"]
         balance = data["balance"]
         tim = t2-t1
-        dte = datag["deaf_time"]
         vox = datag["eco_rate"]
         if data["deaf_time"] != 0:
             # if data["deaf_time"] < tim:
             de = data["deaf_time"]
-            tim1 = de - tim
+            tim1 = tim - de
             collmember.update_one({"_id": member.id},
                 {"$set": {"voice_active": voice_activ + tim1}})
             collmember.update_one({"_id": member.id},
