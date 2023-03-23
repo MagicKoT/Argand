@@ -34,8 +34,8 @@ async def on_ready():
                 "deaf_time": 0,
                 "deaf_trip": 0
             }
-        if collmember.count_documents({"_id": member.id}) == 0:
-            collmember.insert_one(post1)
+            if collmember.count_documents({"_id": member.id}) == 0:
+                collmember.insert_one(post1)
             print(f"Пользователь {member.name}Добавлен в базу данных")
     print(f"Бот {client.user}успешно запушен и проверил пользователей на наличие в базе данных")
 
@@ -43,6 +43,7 @@ async def on_ready():
 async def on_voice_state_update(member, before, after):
     data = collmember.find_one({"_id": member.id})
     datag = collguild.find_one({"_id": member.guild.id})
+    t2 = time.time()
 
     if before.channel is None and after.channel is not None:
         t1 = time.time()
@@ -56,10 +57,11 @@ async def on_voice_state_update(member, before, after):
         t1 = data["voice_trip"]
         voice_activ = data["voice_active"]
         balance = data["balance"]
-        t2 = time.time()
         tim = t2-t1
+        dte = datag["deaf_time"]
         vox = datag["eco_rate"]
         if data["deaf_time"] != 0:
+            # if data["deaf_time"] < tim:
             de = data["deaf_time"]
             tim1 = de - tim
             collmember.update_one({"_id": member.id},
@@ -89,15 +91,26 @@ async def on_voice_state_update(member, before, after):
                 return
             else:
                 dt = data["deaf_trip"]
-                deaf = t2 - dt
+                dea = t2 - dt
+                deaf = dea / 12
                 collmember.update_one({"_id": member.id},
-                    {"$set": {"deaf_time": deaf}})
+                    {"$set": {"deaf_time": dte + deaf}})
             print(f"пользователь {member.name} включил у себя звук и микрофон")
             return
         if before.self_mute is False and after.self_mute is True:
+            collmember.update_one({"_id": member.id},
+                {"$set": {"deaf_trip": t2}})
             print(f"пользователь {member.name} выключил микрофон")
             return
         if before.self_mute is True and after.self_mute is False:
+            if data["deaf_trip"] == 0:
+                return
+            else:
+                dt = data["deaf_trip"]
+                dea = t2 - dt
+                deaf = dea / 12
+                collmember.update_one({"_id": member.id},
+                    {"$set": {"deaf_time": dte + deaf}})
             print(f"пользователь {member.name} включил микрофон")
             return
         
